@@ -1,0 +1,95 @@
+---
+title: "cropReprojectLCC2005"
+author: "Tati Micheletti, Eliot McIntire and Alex Chubaty"
+date: "05 May 2018"
+output: pdf_document
+---
+
+STILL NEED TO FIX: [FIX]
+- rasterToMatch not working: not completing nor returning error / warning (failing silently)
+
+## Overview
+
+This is a translator module that crops and reprojects the data from the [Landcover Classification 2005 data set](ftp://ftp.ccrs.nrcan.gc.ca/ad/NLCCLandCover/LandcoverCanada2005_250m/LandCoverOfCanada2005_V1_4.zip) and the 1000m age map data set from Pan et al. 2012. They are both returned in the projection of the LCC2005 data set.
+
+## Module Info
+
+This is entirely drawn from an unpublished document from the BEACONS team. 
+
+## Literature Cited
+
+Pan, Y., J. M. Chen, R. Birdsey, K. McCullough, L. He, and F. Deng. 2012. NACP Forest Age Maps at 1-km Resolution for Canada (2004) and the U.S.A. (2006). Data set. Available on-line [http://daac.ornl.gov] from ORNL DAAC, Oak Ridge, Tennessee, U.S.A. http://dx.doi.org/10.3334/ORNLDAAC/1096
+
+## Usage
+
+This module doesn't require parameters or objects, but it is possible to select specific study areas to crop the analysis to.
+
+### Loading libraries and setting up the paths  
+
+```{r module_usage}
+library(SpaDES)
+
+# Set the directories
+  workDirectory <- getwd()
+  
+  paths <- list(
+    cachePath = file.path(workDirectory, "cache"),
+    modulePath = file.path(workDirectory, "modules"),
+    inputPath = file.path(workDirectory, "inputs"),
+    outputPath = file.path(workDirectory, "outputs")
+  )
+  
+  setPaths(modulePath = paths$modulePath, inputPath = paths$inputPath, outputPath = paths$outputPath, cachePath = paths$cachePath)
+```
+
+### Defining the Parameters and Objects
+
+The user defined parameters for this module are:
+*.useCache*: Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant. Default is `FALSE`.
+*plotCroppedRasters*: Should the vegMap and ageMap be plotted? Default is `TRUE`.
+
+The objects that one can specify for this module are:
+*cropTemplate*: Choose among `rP` for randomPolygon or `eD` for ecodistrict.
+
+If cropTemplate == 'rP'
+*polyMatrix*: This is the latlong center point for the random polygon. Default is a random forested area in British Columbia (`-122.85, 52.04`).
+*areaSize*: This is the size in hactares of the random polygon. Default is `500000` hactares.
+
+If cropTemplate == 'eD'
+*areaNumber*: This is the number of the ecodistrict to crop the maps to. The default is `339` (Athabasca Plain, Boreal Shield - Saskatchewan). To see a map of the available ecodistricts:
+
+```{r ecod_map}
+source(file.path(paths$modulePath, "cropReprojectLCC2005/R/ecodistrictMap.R"))
+library('magick')
+ecodistrictMap()
+```
+
+If deciding for ecodistrict `339` instead of a random polygon in BC, add the following objects to the objects' list below: 
+`cropTemplate = "eD"`
+
+If deciding for an ecodistrict different than the default (`339`), add the following objects to the objects' list below: 
+`cropTemplate = "eD", areaNumber = NUMBER_OF_CHOSEN_ECODISTRICT`
+
+Setting the parameters:
+
+``` {r setting_parameters}
+times <- list(start = 0, end = 0)
+parameters <- list()
+modules <- list("cropReprojectLCC2005")
+objects <- list()
+inputs <- list()
+outputs <- list()
+```
+
+## Downloading data for the module (if you still don't have the data)
+
+``` {r download_data}
+downloadData(module = "cropReprojectLCC2005", path = paths$modulePath)
+```
+
+## Running the simulation  
+
+``` {r running_simulation}
+mySim <- simInit(times = times, params = parameters, modules = modules,objects = objects) # Initialization with module's checking
+mySimOut <- spades(mySim) # Simulation
+```
